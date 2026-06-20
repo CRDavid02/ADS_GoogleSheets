@@ -1,0 +1,68 @@
+<!-- modulo_canchas.html — Vista: Mapa + Lista de Canchas -->
+
+<!-- ── PANTALLA MAPA ── -->
+<div id="screen-mapa" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand">&#127967; <strong>Free</strong>Courts</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="topbar-icon" onclick="loadCanchas()" title="Actualizar">&#128260;</div>
+    </div>
+  </div>
+
+  <!-- MAPA -->
+  <div id="map-container" class="map-container" aria-label="Mapa de canchas" style="flex:1;min-height:0;">
+    <div id="leaflet-map" style="width:100%;height:100%;z-index:1;"></div>
+  </div>
+
+  <!-- BOTTOM SHEET -->
+  <div class="bottom-sheet" id="bottom-sheet-canchas">
+    <div class="sheet-handle" id="sheet-handle"></div>
+      <div class="sheet-title-row">
+        <span class="sheet-title">Canchas cerca de ti</span>
+
+        <!-- ── BUSCADOR NUEVO ── -->
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input
+            type="search"
+            id="buscador-canchas"
+            class="search-input"
+            placeholder="Buscar cancha o ubicación..."
+            oninput="buscarCanchas(this.value)"
+            autocomplete="off"
+          />
+          <button class="search-clear" id="search-clear" onclick="limpiarBusqueda()" style="display:none">✕</button>
+        </div>
+
+        <div class="filter-chips" id="filter-chips">
+          <span class="chip active" onclick="filtrarCanchas('todas',this)">Todas</span>
+          <span class="chip" onclick="filtrarCanchas('Libre',this)">🟢 Libres</span>
+          <span class="chip" onclick="filtrarCanchas('Incompleto',this)">🟡 Incompleto</span>
+          <span class="chip" onclick="filtrarCanchas('Ocupado',this)">🔴 Ocupadas</span>
+        </div>
+      </div>
+    <div class="sheet-list" id="canchas-list"></div>
+  </div>
+</div>
+
+<!-- ── PANTALLA DETALLE CANCHA ── -->
+<div id="screen-detalle" class="screen">
+  <div class="topbar">
+    <button class="btn-back" onclick="goBack()">←</button>
+    <span class="topbar-title" id="detalle-titulo">Detalle</span>
+  </div>
+  <div class="screen-body" id="detalle-body"></div>
+</div>
+
+<!-- ── PANTALLA LISTA CANCHAS ── -->
+<div id="screen-canchas" class="screen">
+  <div class="topbar">
+    <button class="btn-back" onclick="goBack()">←</button>
+    <span class="topbar-title">Canchas</span>
+    <div class="topbar-icon" onclick="loadCanchas()">🔄</div>
+  </div>
+  <div class="screen-body" id="canchas-list-full"></div>
+
+</div>
