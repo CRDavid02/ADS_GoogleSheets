@@ -1,106 +1,592 @@
-<!-- modulo_reservas.html — Vista: Partidos, Alertas, Perfil y Admin -->
+<script>
+const S = {
+  usuario:      null,
+  canchas:      [],
+  partidos:     [],
+  canchaActual: null,
+  history:      [],
+  filtroP:      'Todos',
+  mapInstance:  null,
+  mapMarkers:   [],
+};
 
-<!-- ── PANTALLA PARTIDOS ── -->
-<div id="screen-partidos" class="screen">
-  <div class="topbar">
-    <button class="btn-back" onclick="goBack()">←</button>
-    <span class="topbar-title">⚽ Partidos</span>
-    <div class="topbar-icon" onclick="openModal('modal-partido')">➕</div>
-  </div>
-  <div class="screen-body" id="partidos-list"></div>
-</div>
+const DEPORTE_ICON = { 'Futbol':'⚽', 'Basquet':'🏀', 'Voley':'🏐', 'Otro':'🏃' };
+const ESTADO_COLOR = { 'Libre':'var(--libre)', 'Incompleto':'var(--incompleto)', 'Ocupado':'var(--ocupado)' };
+const ESTADO_BADGE_CLASS = { 'Libre':'badge-libre', 'Incompleto':'badge-incompleto', 'Ocupado':'badge-ocupado' };
+const MAP_CENTER = { lat: -13.5350, lng: -71.9100 };
+const MAP_ZOOM = 15;
 
-<!-- ── MODAL CREAR PARTIDO ── -->
-<div class="modal-overlay" id="modal-partido">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <h3>➕ Crear Partido</h3>
-    <div class="field">
-      <label>Nombre del partido</label>
-      <div class="field-wrap">
-        <input type="text" id="p-nombre" placeholder="Ej: Fútbol 7 tarde"/>
-      </div>
-    </div>
-    <div class="field">
-      <label>Deporte</label>
-      <div class="field-wrap">
-        <select id="p-deporte">
-          <option>Fútbol</option>
-          <option>Básquet</option>
-          <option>Vóley</option>
-        </select>
-      </div>
-    </div>
-    <div class="field">
-      <label>Cancha</label>
-      <div class="field-wrap">
-        <select id="p-cancha"></select>
-      </div>
-    </div>
-    <div class="field">
-      <label>Fecha y hora</label>
-      <div class="field-wrap">
-        <input type="datetime-local" id="p-fecha"/>
-      </div>
-    </div>
-    <div class="field">
-      <label>Máx. jugadores</label>
-      <div class="field-wrap">
-        <input type="number" id="p-max" value="10" min="2" max="22"/>
-      </div>
-    </div>
-    <button class="btn-primary" onclick="submitPartido()">Crear Partido</button>
-    <button class="btn-outline" style="margin-top:8px;" onclick="closeModal('modal-partido')">Cancelar</button>
-  </div>
-</div>
+function _init() {
+  try { google.script.run.withSuccessHandler(function() {}).setupSheets(); } catch(e) {}
+  setTimeout(function() { showScreen('login'); }, 1500);
+  document.querySelectorAll('.modal-overlay').forEach(function(m) {
+    m.addEventListener('click', function(e) {
+      if (e.target === m) m.classList.remove('open');
+    });
+  });
+}
 
-<!-- ── PANTALLA ALERTAS ── -->
-<div id="screen-alertas" class="screen">
-  <div class="topbar">
-    <button class="btn-back" onclick="goBack()">←</button>
-    <span class="topbar-title">🔔 Notificaciones</span>
-  </div>
-  <div class="screen-body" id="alertas-list">
-    <div class="empty-state">
-      <div class="empty-icon">🔔</div>
-      <div class="empty-text">Sin notificaciones nuevas</div>
-    </div>
-  </div>
-  <?!= include('nav') ?>
-</div>
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _init);
+} else {
+  _init();
+}
 
-<!-- ── PANTALLA PERFIL ── -->
-<div id="screen-perfil" class="screen">
-  <div class="topbar">
-    <button class="btn-back" onclick="goBack()">←</button>
-    <span class="topbar-title">👤 Mi Perfil</span>
-  </div>
-  <div class="screen-body" id="perfil-body"></div>
-</div>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  var target = document.getElementById('screen-' + id);
+  if (target) target.classList.add('active');
+  _syncNav(id);
 
-<!-- ── PANEL ADMIN ── -->
-<div id="screen-admin" class="screen">
-  <div class="admin-header">
-    <div>
-      <h2>🛡️ Panel Admin</h2>
-      <div style="font-size:11px;opacity:.7;margin-top:2px;">FreeCourts — San Jerónimo</div>
-    </div>
-    <div class="topbar-icon" onclick="loadAdmin()">🔄</div>
-  </div>
-  <div class="screen-body">
-    <div class="stats-grid" id="adm-stats"></div>
-    <div class="adm-sec">Estado de Canchas</div>
-    <div style="padding:0 16px 12px;display:flex;gap:16px;align-items:center;">
-      <canvas id="donut" width="110" height="110"></canvas>
-      <div id="donut-labels" style="display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:600;"></div>
-    </div>
-    <div class="adm-sec">Reportes Pendientes</div>
-    <div id="adm-reportes"></div>
-    <div class="adm-sec">Canchas Registradas</div>
-    <div id="adm-canchas"></div>
-    <div style="height:16px;"></div>
-  </div>
-  <div style="background:#fff;border-top:1px solid var(--border);padding:12px 16px;flex-shrink:0;">
-    <button class="btn-outline" style="width:100%;" onclick="goBack()">← Volver</button>
-  </div>
-</div>
+  // Ocultar taskbar en pantallas sin navegacion
+  var sinNav = ['splash', 'login', 'detalle'];
+  var taskbar = document.getElementById('main-nav');
+  if (taskbar) {
+    taskbar.style.display = sinNav.indexOf(id) !== -1 ? 'none' : 'flex';
+  }
+}
+
+function navTo(id) {
+  S.history = [id];
+  showScreen(id);
+  var loaders = { mapa: loadCanchas, canchas: loadCanchas, partidos: loadPartidos, alertas: loadAlertas, perfil: renderPerfil };
+  if (loaders[id]) loaders[id]();
+}
+
+function irA(id) {
+  S.history.push(id);
+  showScreen(id);
+  if (id === 'admin') loadAdmin();
+}
+
+function goBack() {
+  S.history.pop();
+  var prev = S.history[S.history.length - 1] || 'mapa';
+  showScreen(prev);
+  if (prev === 'mapa') loadCanchas();
+}
+
+function _syncNav(activeId) {
+  document.querySelectorAll('.taskbar-item').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  var navEl = document.getElementById('nav-' + activeId);
+  if (navEl) navEl.classList.add('active');
+}
+
+function toggleForms(showReg) {
+  document.getElementById('login-wrap').style.display = showReg ? 'none' : 'block';
+  document.getElementById('reg-wrap').style.display   = showReg ? 'block' : 'none';
+}
+
+function loginDemo() {
+  S.usuario = { id: 'DEMO', nombre: 'Usuario Demo', correo: 'demo@freecourts.pe', rol: 'admin' };
+  _afterLogin();
+}
+
+function _validarCorreo(correo) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
+}
+
+function doLogin() {
+  var correo = document.getElementById('login-email').value.trim();
+  var pass   = document.getElementById('login-pass').value;
+  if (!correo || !pass) { toast('Completa todos los campos'); return; }
+  if (!_validarCorreo(correo)) { toast('Ingresa un correo valido'); return; }
+  loading(true);
+  try {
+    google.script.run
+      .withSuccessHandler(function(r) {
+        loading(false);
+        if (r.success) { S.usuario = r.usuario; _afterLogin(); }
+        else toast(r.message || 'Credenciales incorrectas');
+      })
+      .withFailureHandler(function() { loading(false); toast('Error de conexion'); })
+      .iniciarSesion(correo, pass);
+  } catch(e) {
+    loading(false);
+    S.usuario = { id: 'DEMO', nombre: 'Demo', correo: correo, rol: 'usuario' };
+    _afterLogin();
+  }
+}
+
+function doRegister() {
+  var nombre = document.getElementById('reg-nombre').value.trim();
+  var correo = document.getElementById('reg-email').value.trim();
+  var tel    = document.getElementById('reg-tel').value.trim();
+  var pass   = document.getElementById('reg-pass').value;
+  if (!nombre || !correo || !pass) { toast('Completa los campos obligatorios'); return; }
+  if (!_validarCorreo(correo)) { toast('Ingresa un correo valido'); return; }
+  if (pass.length < 6) { toast('La contrasena debe tener al menos 6 caracteres'); return; }
+  loading(true);
+  try {
+    google.script.run
+      .withSuccessHandler(function(r) {
+        loading(false);
+        if (r.success) { S.usuario = r.usuario; _afterLogin(); }
+        else toast(r.message || 'Error al registrarse');
+      })
+      .withFailureHandler(function() { loading(false); toast('Error de conexion'); })
+      .registrarUsuario(nombre, correo, tel, pass);
+  } catch(e) {
+    loading(false);
+    S.usuario = { id: 'DEMO', nombre: nombre, correo: correo, rol: 'usuario' };
+    _afterLogin();
+  }
+}
+
+function cerrarSesion() {
+  S.usuario = null; S.canchas = []; S.partidos = []; S.canchaActual = null; S.history = [];
+  showScreen('login');
+  toast('Sesion cerrada');
+}
+
+function _afterLogin() {
+  S.history = ['mapa'];
+  showScreen('mapa');
+  loadCanchas();
+}
+
+function loadCanchas() {
+  loading(true);
+  try {
+    google.script.run
+      .withSuccessHandler(function(r) {
+        loading(false);
+        if (r.success) { S.canchas = r.data; renderCanchas(r.data); renderPins(r.data); }
+        else toast('Error al cargar canchas');
+      })
+      .withFailureHandler(function() { loading(false); _renderCanchasMock(); })
+      .getCanchas();
+  } catch(e) { loading(false); _renderCanchasMock(); }
+}
+
+function _renderCanchasMock() {
+  S.canchas = [
+    { ID_Cancha:'C001', Nombre:'Cancha Las Flores',  Ubicacion:'Jr. Huancaro 240',  Tipo_deporte:'Futbol',  Estado_cancha:'Libre',      Capacidad:10, Precio:'Gratis', Latitud:-13.5350, Longitud:-71.9100 },
+    { ID_Cancha:'C002', Nombre:'Polideportivo SJ',   Ubicacion:'Av. Principal 450', Tipo_deporte:'Basquet', Estado_cancha:'Incompleto', Capacidad:10, Precio:'Gratis', Latitud:-13.5370, Longitud:-71.9080 },
+    { ID_Cancha:'C003', Nombre:'Losa San Blas',      Ubicacion:'Jr. San Blas 120',  Tipo_deporte:'Voley',   Estado_cancha:'Ocupado',    Capacidad:12, Precio:'Gratis', Latitud:-13.5330, Longitud:-71.9120 },
+    { ID_Cancha:'C004', Nombre:'Estadio Municipal',  Ubicacion:'Av. Cusco 800',     Tipo_deporte:'Futbol',  Estado_cancha:'Libre',      Capacidad:22, Precio:'Gratis', Latitud:-13.5360, Longitud:-71.9090 },
+    { ID_Cancha:'C005', Nombre:'Cancha La Cajona',   Ubicacion:'Pasaje Cajona 55',  Tipo_deporte:'Futbol',  Estado_cancha:'Incompleto', Capacidad:14, Precio:'Gratis', Latitud:-13.5345, Longitud:-71.9110 },
+  ];
+  renderCanchas(S.canchas);
+  renderPins(S.canchas);
+}
+
+function renderCanchas(canchas) {
+  var emptyHTML = '<div class="empty-state"><div class="empty-icon">🏟️</div><div class="empty-text">Sin canchas</div></div>';
+  var html = canchas.length ? canchas.map(function(c) {
+    return '<div class="cancha-card" onclick="verDetalle(\'' + c.ID_Cancha + '\')">'
+      + '<div class="cancha-card-icon">' + (DEPORTE_ICON[c.Tipo_deporte] || '🏟️') + '</div>'
+      + '<div class="cancha-card-body">'
+      + '<div class="cancha-name">' + c.Nombre + '</div>'
+      + '<div class="cancha-loc">📍 ' + c.Ubicacion + '</div>'
+      + '<div class="cancha-meta"><span class="badge ' + (ESTADO_BADGE_CLASS[c.Estado_cancha] || '') + '">' + c.Estado_cancha + '</span>'
+      + '<span class="cancha-sport">' + c.Tipo_deporte + '</span></div>'
+      + '</div><div class="cancha-arrow">›</div></div>';
+  }).join('') : emptyHTML;
+  ['canchas-list','canchas-list-full'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
+}
+
+function filtrarCanchas(estado, chipEl) {
+  document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
+  chipEl.classList.add('active');
+  var filtradas = estado === 'todas' ? S.canchas : S.canchas.filter(function(c) { return c.Estado_cancha === estado; });
+  renderCanchas(filtradas);
+}
+
+function verDetalle(id) {
+  var c = S.canchas.find(function(x) { return x.ID_Cancha === id; });
+  if (!c) return;
+  S.canchaActual = c;
+  var tituloEl = document.getElementById('detalle-titulo');
+  if (tituloEl) tituloEl.textContent = c.Nombre;
+  var bodyEl = document.getElementById('detalle-body');
+  if (bodyEl) {
+    bodyEl.innerHTML = '<div class="detalle-hero" style="background:' + (ESTADO_COLOR[c.Estado_cancha] || 'var(--green)') + '">'
+      + '<div class="detalle-sport-icon">' + (DEPORTE_ICON[c.Tipo_deporte] || '🏟️') + '</div>'
+      + '<div class="detalle-estado">' + c.Estado_cancha + '</div></div>'
+      + '<div class="detalle-info">'
+      + '<div class="detalle-name">' + c.Nombre + '</div>'
+      + '<div class="detalle-row"><span>📍 Ubicacion</span><span>' + c.Ubicacion + '</span></div>'
+      + '<div class="detalle-row"><span>🏅 Deporte</span><span>' + c.Tipo_deporte + '</span></div>'
+      + '<div class="detalle-row"><span>👥 Capacidad</span><span>' + c.Capacidad + ' personas</span></div>'
+      + '<div class="detalle-row"><span>💰 Precio</span><span>' + (c.Precio || 'Gratis') + '</span></div>'
+      + '</div>'
+      + '<div class="detalle-actions">'
+      + '<button class="btn-primary" onclick="abrirReporte()">📋 Reportar estado</button>'
+      + '<button class="btn-secondary" onclick="reservarCancha()">📅 Reservar</button>'
+      + '</div>';
+  }
+  irA('detalle');
+}
+
+function abrirReporte() {
+  if (!S.canchaActual) return;
+  var infoEl = document.getElementById('rep-cancha-info');
+  if (infoEl) infoEl.innerHTML = '<strong>' + S.canchaActual.Nombre + '</strong> - ' + S.canchaActual.Ubicacion;
+  openModal('modal-reporte');
+}
+
+function submitReporte() {
+  if (!S.canchaActual || !S.usuario) return;
+  var estado   = document.getElementById('rep-estado').value;
+  var personas = parseInt(document.getElementById('rep-personas').value) || 0;
+  var coment   = document.getElementById('rep-comentario').value.trim();
+  loading(true);
+  try {
+    google.script.run
+      .withSuccessHandler(function(r) {
+        loading(false); closeModal('modal-reporte');
+        if (r.success) { toast('Reporte enviado!'); loadCanchas(); }
+        else toast(r.message || 'Error');
+      })
+      .withFailureHandler(function() { loading(false); closeModal('modal-reporte'); toast('Reporte guardado (demo)'); })
+      .enviarReporte(S.usuario.id, S.canchaActual.ID_Cancha, estado, personas, coment);
+  } catch(e) { loading(false); closeModal('modal-reporte'); toast('Reporte guardado (demo)'); }
+}
+
+function loadPartidos() {
+  loading(true);
+  try {
+    google.script.run
+      .withSuccessHandler(function(r) {
+        loading(false);
+        if (r.success) { S.partidos = r.data; renderPartidos(r.data); }
+        else toast('Error al cargar partidos');
+      })
+      .withFailureHandler(function() { loading(false); _renderPartidosMock(); })
+      .getPartidos();
+  } catch(e) { loading(false); _renderPartidosMock(); }
+}
+
+function _renderPartidosMock() {
+  S.partidos = [
+    { ID_Partido:'P001', Nombre_partido:'Futbol 7', Deporte:'Futbol', Cancha_nombre:'Cancha Las Flores', FechaHora:'Hoy 4:00PM', Jugadores_actuales:5, Jugadores_max:7, Estado_partido:'Abierto' },
+    { ID_Partido:'P002', Nombre_partido:'Basquet SJ', Deporte:'Basquet', Cancha_nombre:'Polideportivo SJ', FechaHora:'Manana 7:00AM', Jugadores_actuales:3, Jugadores_max:10, Estado_partido:'Abierto' },
+    { ID_Partido:'P003', Nombre_partido:'Voley mixto', Deporte:'Voley', Cancha_nombre:'Losa San Blas', FechaHora:'Hoy 6:00PM', Jugadores_actuales:6, Jugadores_max:12, Estado_partido:'Abierto' },
+  ];
+  renderPartidos(S.partidos);
+}
+
+function renderPartidos(partidos) {
+  var el = document.getElementById('partidos-list');
+  if (!el) return;
+  var lista = S.filtroP === 'Todos' ? partidos : partidos.filter(function(p) { return p.Deporte === S.filtroP; });
+  if (!lista.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚽</div><div class="empty-text">No hay partidos</div></div>';
+    return;
+  }
+  el.innerHTML = lista.map(function(p) {
+    var act = parseInt(p.Jugadores_actuales) || 0;
+    var max = parseInt(p.Jugadores_max) || 10;
+    var lleno = act >= max;
+    return '<div class="partido-card">'
+      + '<div class="partido-header"><span class="partido-nombre">' + p.Nombre_partido + '</span>'
+      + '<span class="badge ' + (lleno ? 'badge-ocupado' : 'badge-libre') + '">' + (lleno ? 'Lleno' : 'Abierto') + '</span></div>'
+      + '<div class="partido-info">📍 ' + (p.Cancha_nombre || '-') + ' · 🗓️ ' + p.FechaHora + '</div>'
+      + '<div class="partido-jugadores">👥 ' + act + '/' + max + ' jugadores</div>'
+      + '<div class="partido-progress"><div class="progress-bar" style="width:' + Math.min(100,(act/max)*100) + '%;background:' + (lleno ? 'var(--red)' : 'var(--green)') + ';"></div></div>'
+      + '<button class="btn-outline btn-sm" ' + (lleno ? 'disabled' : '') + ' onclick="unirsePartido(\'' + p.ID_Partido + '\')">'
+      + (lleno ? 'Partido lleno' : 'Unirme') + '</button></div>';
+  }).join('');
+}
+
+function unirsePartido(id) {
+  loading(true);
+  try {
+    google.script.run
+      .withSuccessHandler(function(r) { loading(false); toast(r.success ? r.message : r.message); if (r.success) loadPartidos(); })
+      .withFailureHandler(function() { loading(false); toast('Te uniste! (demo)'); loadPartidos(); })
+      .unirsePartido(id, S.usuario ? S.usuario.id : 'DEMO');
+  } catch(e) { loading(false); toast('Te uniste! (demo)'); loadPartidos(); }
+}
+
+function submitPartido() {
+  var nombre  = document.getElementById('p-nombre').value.trim();
+  var deporte = document.getElementById('p-deporte').value;
+  var cancha  = document.getElementById('p-cancha').value;
+  var fecha   = document.getElementById('p-fecha').value;
+  var max     = parseInt(document.getElementById('p-max').value) || 10;
+  if (!nombre || !cancha || !fecha) { toast('Completa todos los campos'); return; }
+  loading(true); closeModal('modal-partido');
+  try {
+    google.script.run
+      .withSuccessHandler(function(r) { loading(false); toast(r.success ? 'Partido creado' : r.message); if (r.success) loadPartidos(); })
+      .withFailureHandler(function() { loading(false); toast('Partido creado (demo)'); loadPartidos(); })
+      .crearPartido(S.usuario ? S.usuario.id : 'DEMO', cancha, fecha, max, deporte, nombre);
+  } catch(e) { loading(false); toast('Partido creado (demo)'); loadPartidos(); }
+}
+
+function loadAlertas() {
+  var alertasMock = [
+    { icon:'✅', titulo:'Cancha Las Flores liberada', msg:'La cancha esta libre.', tiempo:'Hace 5 min', leido:false },
+    { icon:'🟠', titulo:'Polideportivo incompleto',  msg:'Solo hay 3 jugadores.', tiempo:'Hace 12 min', leido:false },
+    { icon:'⚽', titulo:'Nuevo partido creado',      msg:'Futbol 7 hoy 4:00PM.',  tiempo:'Hace 20 min', leido:true },
+    { icon:'📋', titulo:'Reporte validado',          msg:'Gracias por reportar.', tiempo:'Hace 1h',     leido:true },
+  ];
+  var el = document.getElementById('alertas-list');
+  if (!el) return;
+  el.innerHTML = alertasMock.map(function(a) {
+    return '<div class="alerta-card ' + (a.leido ? '' : 'alerta-nueva') + '">'
+      + '<div class="alerta-icon">' + a.icon + '</div>'
+      + '<div class="alerta-body">'
+      + '<div class="alerta-titulo">' + a.titulo + '</div>'
+      + '<div class="alerta-msg">' + a.msg + '</div>'
+      + '<div class="alerta-tiempo">' + a.tiempo + '</div>'
+      + '</div>'
+      + (!a.leido ? '<div class="alerta-dot"></div>' : '')
+      + '</div>';
+  }).join('');
+}
+
+function renderPerfil() {
+  var u  = S.usuario;
+  var el = document.getElementById('perfil-body');
+  if (!u || !el) return;
+  el.innerHTML = '<div class="perfil-avatar">' + (u.nombre ? u.nombre.charAt(0).toUpperCase() : '?') + '</div>'
+    + '<div class="perfil-nombre">' + u.nombre + '</div>'
+    + '<div class="perfil-correo">' + u.correo + '</div>'
+    + '<div class="perfil-rol">' + (u.rol === 'admin' ? 'Administrador' : 'Usuario') + '</div>'
+    + '<div style="padding:16px;display:flex;flex-direction:column;gap:10px;margin-top:8px;">'
+    + (u.rol === 'admin' ? '<button class="btn-primary" onclick="irA(\'admin\')">Panel Admin</button>' : '')
+    + '<button class="btn-outline" onclick="cerrarSesion()">Cerrar sesion</button>'
+    + '</div>';
+}
+
+function loadAdmin() {
+  if (!S.usuario || S.usuario.rol !== 'admin') { toast('Acceso denegado'); return; }
+  loading(true);
+  try {
+    google.script.run
+      .withSuccessHandler(function(r) { loading(false); if (r.success) _renderAdmin(r.data); else toast('Error'); })
+      .withFailureHandler(function() { loading(false); _renderAdminMock(); })
+      .getDashboardStats();
+  } catch(e) { loading(false); _renderAdminMock(); }
+}
+
+function _renderAdminMock() {
+  _renderAdmin({
+    totalCanchas:5, libres:2, incompletas:2, ocupadas:1,
+    totalUsuarios:12, reportesHoy:5, sinRevisar:2, partidosActivos:3,
+    canchas: S.canchas,
+    reportes:[
+      { ID_Reporte:'R001', ID_Cancha:'C002', Estado_reporte:'Ocupado',    Cantidad_personas:10, Comentario:'Llena',  Validado:'Pendiente' },
+      { ID_Reporte:'R002', ID_Cancha:'C003', Estado_reporte:'Incompleto', Cantidad_personas:3,  Comentario:'Faltan', Validado:'Pendiente' },
+    ],
+    partidos:[]
+  });
+}
+
+function _renderAdmin(d) {
+  var statsEl = document.getElementById('adm-stats');
+  if (statsEl) {
+    var stats = [
+      { icon:'🏟️', label:'Canchas',    val:d.totalCanchas    },
+      { icon:'🟢', label:'Libres',      val:d.libres          },
+      { icon:'🟡', label:'Incomp.',     val:d.incompletas     },
+      { icon:'🔴', label:'Ocupadas',    val:d.ocupadas        },
+      { icon:'👥', label:'Usuarios',    val:d.totalUsuarios   },
+      { icon:'⚽', label:'Partidos',    val:d.partidosActivos },
+      { icon:'📋', label:'Rep. hoy',    val:d.reportesHoy     },
+      { icon:'⏳', label:'Sin revisar', val:d.sinRevisar      },
+    ];
+    statsEl.innerHTML = stats.map(function(s) {
+      return '<div class="stat-card"><div class="stat-icon">' + s.icon + '</div>'
+        + '<div class="stat-val">' + s.val + '</div>'
+        + '<div class="stat-label">' + s.label + '</div></div>';
+    }).join('');
+  }
+  drawDonut(d.libres, d.incompletas, d.ocupadas);
+  var reportesEl = document.getElementById('adm-reportes');
+  if (reportesEl) {
+    var pendientes = d.reportes.filter(function(r) { return r.Validado === 'Pendiente'; });
+    reportesEl.innerHTML = pendientes.length ? pendientes.map(function(r) {
+      return '<div class="reporte-card">'
+        + '<div class="reporte-info"><strong>' + r.ID_Cancha + '</strong> · ' + r.Estado_reporte + ' · ' + r.Cantidad_personas + ' personas</div>'
+        + '<div class="reporte-coment">' + (r.Comentario || 'Sin comentario') + '</div>'
+        + '<div class="reporte-actions">'
+        + '<button class="btn-sm btn-primary" onclick="validarReporte(\'' + r.ID_Reporte + '\',\'Validado\')">Validar</button>'
+        + '<button class="btn-sm btn-outline" onclick="validarReporte(\'' + r.ID_Reporte + '\',\'Rechazado\')">Rechazar</button>'
+        + '</div></div>';
+    }).join('') : '<div class="empty-state-sm">Sin reportes pendientes</div>';
+  }
+  var canchasEl = document.getElementById('adm-canchas');
+  if (canchasEl) {
+    canchasEl.innerHTML = d.canchas.map(function(c) {
+      return '<div class="adm-cancha-row"><span>' + c.Nombre + '</span>'
+        + '<span class="badge ' + (ESTADO_BADGE_CLASS[c.Estado_cancha] || '') + '">' + c.Estado_cancha + '</span></div>';
+    }).join('');
+  }
+}
+
+function validarReporte(id, accion) {
+  loading(true);
+  try {
+    google.script.run
+      .withSuccessHandler(function() { loading(false); toast(accion === 'Validado' ? 'Validado' : 'Rechazado'); loadAdmin(); })
+      .withFailureHandler(function() { loading(false); toast('Actualizado (demo)'); loadAdmin(); })
+      .validarReporte(id, accion);
+  } catch(e) { loading(false); toast('Actualizado (demo)'); loadAdmin(); }
+}
+
+function reservarCancha() {
+  if (!S.canchaActual) return;
+  if (S.canchaActual.Estado_cancha === 'Ocupado') { toast('Cancha ocupada'); return; }
+  toast('Reserva solicitada para ' + S.canchaActual.Nombre);
+}
+
+var _leafletMap = null;
+var _leafletMarkers = [];
+
+function initLeafletMap() {
+  if (_leafletMap) return;
+  var mapEl = document.getElementById('leaflet-map');
+  if (!mapEl) return;
+
+  _leafletMap = L.map('leaflet-map', {
+    center: [-13.5350, -71.9100],
+    zoom: 15,
+    zoomControl: true,
+    attributionControl: false
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+  }).addTo(_leafletMap);
+}
+
+function renderPins(canchas) {
+  initLeafletMap();
+  if (!_leafletMap) return;
+
+  // Limpiar marcadores anteriores
+  _leafletMarkers.forEach(function(m) { _leafletMap.removeLayer(m); });
+  _leafletMarkers = [];
+
+  var colorMap = { 'Libre':'#1a7a3c', 'Incompleto':'#f0851a', 'Ocupado':'#e53935' };
+
+  canchas.forEach(function(c) {
+    if (!c.Latitud || !c.Longitud) return;
+
+    var color = colorMap[c.Estado_cancha] || '#999';
+
+    var icon = L.divIcon({
+      className: '',
+      html: '<div style="'
+        + 'background:' + color + ';'
+        + 'width:36px;height:36px;'
+        + 'border-radius:50% 50% 50% 0;'
+        + 'transform:rotate(-45deg);'
+        + 'border:3px solid #fff;'
+        + 'box-shadow:0 2px 6px rgba(0,0,0,.3);'
+        + 'display:flex;align-items:center;justify-content:center;'
+        + '"><span style="transform:rotate(45deg);font-size:16px;">'
+        + (DEPORTE_ICON[c.Tipo_deporte] || '🏟️')
+        + '</span></div>',
+      iconSize: [36, 36],
+      iconAnchor: [18, 36],
+      popupAnchor: [0, -36]
+    });
+
+    var marker = L.marker(
+      [parseFloat(c.Latitud), parseFloat(c.Longitud)],
+      { icon: icon }
+    ).addTo(_leafletMap);
+
+    marker.bindPopup(
+      '<div style="font-size:13px;min-width:140px;">'
+      + '<strong>' + c.Nombre + '</strong><br>'
+      + '<span style="color:' + color + ';font-weight:600;">' + c.Estado_cancha + '</span><br>'
+      + '<small>' + c.Ubicacion + '</small><br><br>'
+      + '<button onclick="verDetalle(\'' + c.ID_Cancha + '\')" '
+      + 'style="background:' + color + ';color:#fff;border:none;padding:6px 12px;'
+      + 'border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;width:100%;">'
+      + 'Ver detalle</button>'
+      + '</div>'
+    );
+
+    _leafletMarkers.push(marker);
+  });
+
+  // Ajustar vista si hay marcadores
+  if (_leafletMarkers.length > 0) {
+    var group = L.featureGroup(_leafletMarkers);
+    _leafletMap.fitBounds(group.getBounds().pad(0.2));
+  }
+}
+
+
+function openModal(id) {
+  if (id === 'modal-partido') {
+    var sel = document.getElementById('p-cancha');
+    if (sel && !sel.options.length && S.canchas.length) {
+      sel.innerHTML = S.canchas.map(function(c) {
+        return '<option value="' + c.ID_Cancha + '">' + c.Nombre + '</option>';
+      }).join('');
+    }
+  }
+  var el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+function toast(msg, dur) {
+  dur = dur || 2800;
+  var t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, dur);
+}
+
+function loading(show) {
+  var el = document.getElementById('loading');
+  if (el) el.classList.toggle('show', show);
+}
+
+function formatFecha(fecha) {
+  if (!fecha) return '-';
+  var d = new Date(fecha);
+  if (isNaN(d.getTime())) return fecha;
+  return d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+}
+
+function drawDonut(libres, incompl, ocupadas) {
+  var canvas = document.getElementById('donut');
+  if (!canvas) return;
+  var ctx   = canvas.getContext('2d');
+  var total = (libres + incompl + ocupadas) || 1;
+  var slices = [
+    { val:libres,   color:'#1a7a3c' },
+    { val:incompl,  color:'#f0851a' },
+    { val:ocupadas, color:'#e53935' },
+  ];
+  var angle = -Math.PI / 2;
+  ctx.clearRect(0, 0, 110, 110);
+  slices.forEach(function(s) {
+    var sweep = (s.val / total) * 2 * Math.PI;
+    ctx.beginPath(); ctx.moveTo(55,55);
+    ctx.arc(55, 55, 48, angle, angle + sweep);
+    ctx.closePath(); ctx.fillStyle = s.color; ctx.fill();
+    angle += sweep;
+  });
+  ctx.beginPath(); ctx.arc(55, 55, 28, 0, 2 * Math.PI);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  var labelsEl = document.getElementById('donut-labels');
+  if (labelsEl) {
+    labelsEl.innerHTML = [
+      { color:'#1a7a3c', label:'Libres (' + libres + ')' },
+      { color:'#f0851a', label:'Incompleto (' + incompl + ')' },
+      { color:'#e53935', label:'Ocupadas (' + ocupadas + ')' },
+    ].map(function(l) { return '<span style="color:' + l.color + '">' + l.label + '</span>'; }).join('');
+  }
+}
+</script>
