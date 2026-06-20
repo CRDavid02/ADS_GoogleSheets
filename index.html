@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<base target="_top">
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<?!= include('codigo_css'); ?>
+</head>
+<body>
+<div id="app">
+
+<div id="screen-splash" class="screen active">
+  <div class="splash-logo">
+    <div class="icon">&#127967;</div>
+    <h1>Free<span>Courts</span></h1>
+    <p>CANCHAS EN TIEMPO REAL</p>
+  </div>
+</div>
+
+<div id="screen-login" class="screen">
+  <div class="login-top">
+    <div class="app-logo">&#127967;</div>
+    <h1>Free<span>Courts</span></h1>
+    <p>CANCHAS EN TIEMPO REAL</p>
+  </div>
+  <div class="login-card" id="login-wrap">
+    <h2>Iniciar Sesion</h2>
+    <div class="field">
+      <div class="field-wrap">
+        <span class="ficon">&#9993;</span>
+        <input type="email" id="login-email" placeholder="Correo electronico"/>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-wrap">
+        <span class="ficon">&#128274;</span>
+        <input type="password" id="login-pass" placeholder="Contrasena"/>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Ingresar</button>
+    <div class="divider">o</div>
+    <button class="btn-outline" onclick="loginDemo()">Entrar como Demo</button>
+    <div class="login-switch">No tienes cuenta? <a onclick="toggleForms(true)">Registrate</a></div>
+  </div>
+  <div class="login-card" id="reg-wrap" style="display:none;">
+    <h2>Crear Cuenta</h2>
+    <div class="field">
+      <div class="field-wrap">
+        <input type="text" id="reg-nombre" placeholder="Nombre completo"/>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-wrap">
+        <input type="email" id="reg-email" placeholder="Correo electronico"/>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-wrap">
+        <input type="tel" id="reg-tel" placeholder="Telefono"/>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-wrap">
+        <input type="password" id="reg-pass" placeholder="Contrasena"/>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="doRegister()">Crear Cuenta</button>
+    <div class="login-switch">Ya tienes cuenta? <a onclick="toggleForms(false)">Inicia Sesion</a></div>
+  </div>
+</div>
+
+<?!= include('sidebar'); ?>
+<?!= include('modulo_canchas'); ?>
+<?!= include('modulo_reservas'); ?>
+
+<div class="modal-overlay" id="modal-reporte">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3>Reportar Estado</h3>
+    <div id="rep-cancha-info" style="font-size:13px;color:var(--text2);margin-bottom:14px;"></div>
+    <div class="field">
+      <label>Estado actual</label>
+      <div class="field-wrap">
+        <select id="rep-estado">
+          <option value="Libre">Libre</option>
+          <option value="Incompleto">Incompleto</option>
+          <option value="Ocupado">Ocupado</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Personas aproximadas</label>
+      <div class="field-wrap">
+        <input type="number" id="rep-personas" value="0" min="0" max="100"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Comentario</label>
+      <div class="field-wrap">
+        <textarea id="rep-comentario" rows="2" placeholder="Comentario opcional..."></textarea>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="submitReporte()">Enviar Reporte</button>
+    <button class="btn-outline" style="margin-top:8px;" onclick="closeModal('modal-reporte')">Cancelar</button>
+  </div>
+</div>
+
+<?!= include('nav'); ?>
+
+<div id="toast"></div>
+<div id="loading">&#9203;</div>
+
+</div>
+
+<?!= include('modulo_api_handlers'); ?>
+</body>
+</html>
