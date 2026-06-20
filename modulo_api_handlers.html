@@ -18,7 +18,7 @@ const MAP_ZOOM = 15;
 
 function _init() {
   try { google.script.run.withSuccessHandler(function() {}).setupSheets(); } catch(e) {}
-  setTimeout(function() { showScreen('login'); }, 1500);
+  setTimeout(function() { showScreen('login'); }, 1800);
   document.querySelectorAll('.modal-overlay').forEach(function(m) {
     m.addEventListener('click', function(e) {
       if (e.target === m) m.classList.remove('open');
@@ -38,11 +38,15 @@ function showScreen(id) {
   if (target) target.classList.add('active');
   _syncNav(id);
 
-  // Ocultar taskbar en pantallas sin navegacion
   var sinNav = ['splash', 'login', 'detalle'];
   var taskbar = document.getElementById('main-nav');
   if (taskbar) {
     taskbar.style.display = sinNav.indexOf(id) !== -1 ? 'none' : 'flex';
+  }
+  // Ocultar/mostrar taskbar de navegación inferior también
+  var taskbarEl = document.querySelector('.taskbar');
+  if (taskbarEl) {
+    taskbarEl.style.display = sinNav.indexOf(id) !== -1 ? 'none' : 'flex';
   }
 }
 
@@ -163,11 +167,18 @@ function loadCanchas() {
 
 function _renderCanchasMock() {
   S.canchas = [
-    { ID_Cancha:'C001', Nombre:'Cancha Las Flores',  Ubicacion:'Jr. Huancaro 240',  Tipo_deporte:'Futbol',  Estado_cancha:'Libre',      Capacidad:10, Precio:'Gratis', Latitud:-13.5350, Longitud:-71.9100 },
-    { ID_Cancha:'C002', Nombre:'Polideportivo SJ',   Ubicacion:'Av. Principal 450', Tipo_deporte:'Basquet', Estado_cancha:'Incompleto', Capacidad:10, Precio:'Gratis', Latitud:-13.5370, Longitud:-71.9080 },
-    { ID_Cancha:'C003', Nombre:'Losa San Blas',      Ubicacion:'Jr. San Blas 120',  Tipo_deporte:'Voley',   Estado_cancha:'Ocupado',    Capacidad:12, Precio:'Gratis', Latitud:-13.5330, Longitud:-71.9120 },
-    { ID_Cancha:'C004', Nombre:'Estadio Municipal',  Ubicacion:'Av. Cusco 800',     Tipo_deporte:'Futbol',  Estado_cancha:'Libre',      Capacidad:22, Precio:'Gratis', Latitud:-13.5360, Longitud:-71.9090 },
-    { ID_Cancha:'C005', Nombre:'Cancha La Cajona',   Ubicacion:'Pasaje Cajona 55',  Tipo_deporte:'Futbol',  Estado_cancha:'Incompleto', Capacidad:14, Precio:'Gratis', Latitud:-13.5345, Longitud:-71.9110 },
+    { ID_Cancha:'C001', Nombre:'Cancha Las Flores',     Ubicacion:'Jr. Huancaro 240, San Jerónimo',       Tipo_deporte:'Futbol',  Estado_cancha:'Libre',      Capacidad:10, Precio:'Gratis', Latitud:-13.5350, Longitud:-71.9100 },
+    { ID_Cancha:'C002', Nombre:'Polideportivo SJ',       Ubicacion:'Av. Principal 450, San Jerónimo',      Tipo_deporte:'Basquet', Estado_cancha:'Incompleto', Capacidad:10, Precio:'Gratis', Latitud:-13.5370, Longitud:-71.9080 },
+    { ID_Cancha:'C003', Nombre:'Losa San Blas',          Ubicacion:'Jr. San Blas 120, San Jerónimo',       Tipo_deporte:'Voley',   Estado_cancha:'Ocupado',    Capacidad:12, Precio:'Gratis', Latitud:-13.5330, Longitud:-71.9120 },
+    { ID_Cancha:'C004', Nombre:'Estadio Municipal',      Ubicacion:'Av. Cusco 800, San Jerónimo',          Tipo_deporte:'Futbol',  Estado_cancha:'Libre',      Capacidad:22, Precio:'Gratis', Latitud:-13.5360, Longitud:-71.9090 },
+    { ID_Cancha:'C005', Nombre:'Cancha La Cajona',       Ubicacion:'Pasaje Cajona 55, San Jerónimo',       Tipo_deporte:'Futbol',  Estado_cancha:'Incompleto', Capacidad:14, Precio:'Gratis', Latitud:-13.5345, Longitud:-71.9110 },
+    { ID_Cancha:'C006', Nombre:'Losa Av. Machupicchu',   Ubicacion:'Av. Machupicchu s/n, San Jerónimo',    Tipo_deporte:'Futbol',  Estado_cancha:'Libre',      Capacidad:10, Precio:'Gratis', Latitud:-13.5338, Longitud:-71.9095 },
+    { ID_Cancha:'C007', Nombre:'Cancha Los Pinos',       Ubicacion:'Jr. Los Pinos 310, San Jerónimo',      Tipo_deporte:'Voley',   Estado_cancha:'Libre',      Capacidad:12, Precio:'Gratis', Latitud:-13.5355, Longitud:-71.9115 },
+    { ID_Cancha:'C008', Nombre:'Losa Villa El Sol',      Ubicacion:'Urb. Villa El Sol, San Jerónimo',      Tipo_deporte:'Basquet', Estado_cancha:'Ocupado',    Capacidad:10, Precio:'Gratis', Latitud:-13.5342, Longitud:-71.9078 },
+    { ID_Cancha:'C009', Nombre:'Cancha Barrio Nuevo',    Ubicacion:'Barrio Nuevo Mz. D, San Jerónimo',     Tipo_deporte:'Futbol',  Estado_cancha:'Incompleto', Capacidad:16, Precio:'Gratis', Latitud:-13.5365, Longitud:-71.9102 },
+    { ID_Cancha:'C010', Nombre:'Polideportivo Cachimayo', Ubicacion:'Cachimayo s/n, San Jerónimo',         Tipo_deporte:'Voley',   Estado_cancha:'Libre',      Capacidad:12, Precio:'Gratis', Latitud:-13.5325, Longitud:-71.9130 },
+    { ID_Cancha:'C011', Nombre:'Cancha Urb. Huancaro',   Ubicacion:'Urb. Huancaro C-4, San Jerónimo',     Tipo_deporte:'Futbol',  Estado_cancha:'Libre',      Capacidad:10, Precio:'Gratis', Latitud:-13.5348, Longitud:-71.9088 },
+    { ID_Cancha:'C012', Nombre:'Losa Sector Marcahuasi',  Ubicacion:'Sector Marcahuasi, San Jerónimo',     Tipo_deporte:'Basquet', Estado_cancha:'Ocupado',    Capacidad:10, Precio:'Gratis', Latitud:-13.5372, Longitud:-71.9118 },
   ];
   renderCanchas(S.canchas);
   renderPins(S.canchas);
@@ -589,4 +600,84 @@ function drawDonut(libres, incompl, ocupadas) {
     ].map(function(l) { return '<span style="color:' + l.color + '">' + l.label + '</span>'; }).join('');
   }
 }
+
+// ── BUSCADOR ──
+function buscarCanchas(q) {
+  var clearBtn = document.getElementById('search-clear');
+  if (clearBtn) clearBtn.style.display = q.length ? 'block' : 'none';
+  var termino = q.trim().toLowerCase();
+  if (!termino) { renderCanchas(S.canchas); return; }
+  var resultado = S.canchas.filter(function(c) {
+    return (c.Nombre       || '').toLowerCase().includes(termino)
+        || (c.Ubicacion    || '').toLowerCase().includes(termino)
+        || (c.Tipo_deporte || '').toLowerCase().includes(termino);
+  });
+  renderCanchas(resultado);
+}
+
+function limpiarBusqueda() {
+  var input    = document.getElementById('buscador-canchas');
+  var clearBtn = document.getElementById('search-clear');
+  if (input)    { input.value = ''; input.focus(); }
+  if (clearBtn) clearBtn.style.display = 'none';
+  renderCanchas(S.canchas);
+}
+
+// ── BOTTOM SHEET ARRASTRABLE ──
+(function() {
+  var sheet, handle, startY, startH, isDragging;
+
+  function initSheet() {
+    sheet  = document.getElementById('bottom-sheet-canchas');
+    handle = document.getElementById('sheet-handle');
+    if (!sheet || !handle) return;
+    handle.addEventListener('touchstart', onStart, { passive: true });
+    handle.addEventListener('mousedown',  onStart);
+  }
+
+  function onStart(e) {
+    isDragging = true;
+    startY = e.touches ? e.touches[0].clientY : e.clientY;
+    startH = sheet.getBoundingClientRect().height;
+    sheet.style.transition = 'none';
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchend',  onEnd);
+    document.addEventListener('mouseup',   onEnd);
+  }
+
+  function onMove(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    var y    = e.touches ? e.touches[0].clientY : e.clientY;
+    var dy   = startY - y;
+    var app  = sheet.parentElement;
+    var maxH = app ? app.clientHeight * 0.90 : window.innerHeight * 0.90;
+    sheet.style.height = Math.max(60, Math.min(maxH, startH + dy)) + 'px';
+  }
+
+  function onEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('touchend',  onEnd);
+    document.removeEventListener('mouseup',   onEnd);
+    var app   = sheet.parentElement;
+    var total = app ? app.clientHeight : window.innerHeight;
+    var pct   = sheet.getBoundingClientRect().height / total;
+    sheet.style.transition = '';
+    sheet.style.height = '';
+    sheet.classList.remove('peek', 'full');
+    if      (pct < 0.20) sheet.classList.add('peek');
+    else if (pct > 0.65) sheet.classList.add('full');
+    if (S.mapInstance) setTimeout(function() { S.mapInstance.invalidateSize(); }, 350);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSheet);
+  } else {
+    initSheet();
+  }
+})();
 </script>
