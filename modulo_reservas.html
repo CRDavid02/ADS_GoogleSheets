@@ -1,0 +1,106 @@
+<!-- modulo_reservas.html — Vista: Partidos, Alertas, Perfil y Admin -->
+
+<!-- ── PANTALLA PARTIDOS ── -->
+<div id="screen-partidos" class="screen">
+  <div class="topbar">
+    <button class="btn-back" onclick="goBack()">←</button>
+    <span class="topbar-title">⚽ Partidos</span>
+    <div class="topbar-icon" onclick="openModal('modal-partido')">➕</div>
+  </div>
+  <div class="screen-body" id="partidos-list"></div>
+</div>
+
+<!-- ── MODAL CREAR PARTIDO ── -->
+<div class="modal-overlay" id="modal-partido">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3>➕ Crear Partido</h3>
+    <div class="field">
+      <label>Nombre del partido</label>
+      <div class="field-wrap">
+        <input type="text" id="p-nombre" placeholder="Ej: Fútbol 7 tarde"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Deporte</label>
+      <div class="field-wrap">
+        <select id="p-deporte">
+          <option>Fútbol</option>
+          <option>Básquet</option>
+          <option>Vóley</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Cancha</label>
+      <div class="field-wrap">
+        <select id="p-cancha"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Fecha y hora</label>
+      <div class="field-wrap">
+        <input type="datetime-local" id="p-fecha"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Máx. jugadores</label>
+      <div class="field-wrap">
+        <input type="number" id="p-max" value="10" min="2" max="22"/>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="submitPartido()">Crear Partido</button>
+    <button class="btn-outline" style="margin-top:8px;" onclick="closeModal('modal-partido')">Cancelar</button>
+  </div>
+</div>
+
+<!-- ── PANTALLA ALERTAS ── -->
+<div id="screen-alertas" class="screen">
+  <div class="topbar">
+    <button class="btn-back" onclick="goBack()">←</button>
+    <span class="topbar-title">🔔 Notificaciones</span>
+  </div>
+  <div class="screen-body" id="alertas-list">
+    <div class="empty-state">
+      <div class="empty-icon">🔔</div>
+      <div class="empty-text">Sin notificaciones nuevas</div>
+    </div>
+  </div>
+  <?!= include('nav') ?>
+</div>
+
+<!-- ── PANTALLA PERFIL ── -->
+<div id="screen-perfil" class="screen">
+  <div class="topbar">
+    <button class="btn-back" onclick="goBack()">←</button>
+    <span class="topbar-title">👤 Mi Perfil</span>
+  </div>
+  <div class="screen-body" id="perfil-body"></div>
+</div>
+
+<!-- ── PANEL ADMIN ── -->
+<div id="screen-admin" class="screen">
+  <div class="admin-header">
+    <div>
+      <h2>🛡️ Panel Admin</h2>
+      <div style="font-size:11px;opacity:.7;margin-top:2px;">FreeCourts — San Jerónimo</div>
+    </div>
+    <div class="topbar-icon" onclick="loadAdmin()">🔄</div>
+  </div>
+  <div class="screen-body">
+    <div class="stats-grid" id="adm-stats"></div>
+    <div class="adm-sec">Estado de Canchas</div>
+    <div style="padding:0 16px 12px;display:flex;gap:16px;align-items:center;">
+      <canvas id="donut" width="110" height="110"></canvas>
+      <div id="donut-labels" style="display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:600;"></div>
+    </div>
+    <div class="adm-sec">Reportes Pendientes</div>
+    <div id="adm-reportes"></div>
+    <div class="adm-sec">Canchas Registradas</div>
+    <div id="adm-canchas"></div>
+    <div style="height:16px;"></div>
+  </div>
+  <div style="background:#fff;border-top:1px solid var(--border);padding:12px 16px;flex-shrink:0;">
+    <button class="btn-outline" style="width:100%;" onclick="goBack()">← Volver</button>
+  </div>
+</div>
