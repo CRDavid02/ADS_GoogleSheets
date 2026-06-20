@@ -2,12 +2,22 @@
 
 <!-- ── PANTALLA MAPA ── -->
 <div id="screen-mapa" class="screen">
-  <div class="topbar">
-    <div class="topbar-left">
+  <div class="topbar" style="flex-direction:column;align-items:stretch;gap:8px;padding:10px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
       <div class="topbar-brand">&#127967; <strong>Free</strong>Courts</div>
-    </div>
-    <div class="topbar-actions">
       <div class="topbar-icon" onclick="loadCanchas()" title="Actualizar">&#128260;</div>
+    </div>
+    <div class="search-bar" style="margin-bottom:0;">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        id="buscador-canchas"
+        class="search-input"
+        placeholder="Buscar cancha o ubicación..."
+        oninput="buscarCanchas(this.value)"
+        autocomplete="off"
+      />
+      <button class="search-clear" id="search-clear" onclick="limpiarBusqueda()" style="display:none">✕</button>
     </div>
   </div>
 
@@ -21,20 +31,6 @@
     <div class="sheet-handle" id="sheet-handle"></div>
       <div class="sheet-title-row">
         <span class="sheet-title">Canchas cerca de ti</span>
-
-        <!-- ── BUSCADOR NUEVO ── -->
-        <div class="search-bar">
-          <span class="search-icon">🔍</span>
-          <input
-            type="search"
-            id="buscador-canchas"
-            class="search-input"
-            placeholder="Buscar cancha o ubicación..."
-            oninput="buscarCanchas(this.value)"
-            autocomplete="off"
-          />
-          <button class="search-clear" id="search-clear" onclick="limpiarBusqueda()" style="display:none">✕</button>
-        </div>
 
         <div class="filter-chips" id="filter-chips">
           <span class="chip active" onclick="filtrarCanchas('todas',this)">Todas</span>
